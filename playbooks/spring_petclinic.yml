@@ -1,0 +1,40 @@
+---
+- name: Deploy Spring PetClinic Application
+  hosts: webservers
+  gather_facts: yes
+  tasks:
+    - name: Check if Java is installed
+      command: java -version
+      ignore_errors: true
+      register: java_check
+
+    - name: Install Java
+      when: java_check.rc != 0
+      become: yes
+      apt:
+        name: default-jdk
+        state: present
+      tags: 
+        - java
+
+    - name: Transfer artifact to remote server
+      become: yes
+      copy:
+        src: "../../spring/spring-petclinic/target/spring-petclinic-1.0.0.jar"
+        dest: "/tmp/petclinic.jar"
+      vars:
+        ansible_become_pass: kassadin
+      tags:
+        - transfer
+
+    - name: Deploy Spring PetClinic
+      become: yes
+      vars:
+        ansible_become_pass: kassadin
+      shell: "java -jar /tmp/petclinic.jar"
+      async: 600
+      poll: 0
+      tags:
+        - deploy
+
+
